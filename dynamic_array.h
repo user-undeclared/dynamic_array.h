@@ -25,10 +25,16 @@ void* dynamic_array_to_heap_allocated_array(Dynamic_Array array);
 
 #endif /* DYNAMIC_ARRAY_H_ */
 
-#ifdef DYNAMIC_ARRAY_IMPLEMENTATION
+#if defined(DYNAMIC_ARRAY_IMPL) || defined(DYNAMIC_ARRAY_IMPLEMENTATION)
 #include <stddef.h>
-#include <stdlib.h>
 #include <string.h>
+
+#if !defined(DYNAMIC_ARRAY_MALLOC) && !defined(DYNAMIC_ARRAY_REALLOC) && !defined(DYNAMIC_ARRAY_FREE)
+#   include <stdlib.h>
+#   define DYNAMIC_ARRAY_MALLOC  malloc
+#   define DYNAMIC_ARRAY_REALLOC realloc
+#   define DYNAMIC_ARRAY_FREE    free
+#endif
 
 Dynamic_Array dynamic_array_create_with_capacity(size_t item_size, size_t capacity) {
     Dynamic_Array array;
@@ -41,7 +47,7 @@ Dynamic_Array dynamic_array_create_with_capacity(size_t item_size, size_t capaci
     array_header.length = 0;
 
     array_heap_allocation_size = sizeof(array_header) + (array_header.item_size * array_header.capacity);
-    array_heap_allocation = malloc(array_heap_allocation_size);
+    array_heap_allocation = DYNAMIC_ARRAY_MALLOC(array_heap_allocation_size);
     if(array_heap_allocation == NULL) {
         return NULL;
     }
@@ -54,7 +60,7 @@ Dynamic_Array dynamic_array_create_with_capacity(size_t item_size, size_t capaci
 
 void dynamic_array_destroy(Dynamic_Array array) {
     void* array_heap_allocation = ((Dynamic_Array_Header*) array) - 1;
-    free(array_heap_allocation);
+    DYNAMIC_ARRAY_FREE(array_heap_allocation);
 }
 
 Dynamic_Array dynamic_array_push(Dynamic_Array array, const void* item) {
@@ -72,9 +78,9 @@ Dynamic_Array dynamic_array_push(Dynamic_Array array, const void* item) {
 
         old_array_heap_allocation = ((Dynamic_Array_Header*) array) - 1;
         new_array_heap_allocation_size = sizeof(*array_header) + (array_header->capacity * array_header->item_size);
-        new_array_heap_allocation = realloc(old_array_heap_allocation, new_array_heap_allocation_size);
+        new_array_heap_allocation = DYNAMIC_ARRAY_REALLOC(old_array_heap_allocation, new_array_heap_allocation_size);
         if(new_array_heap_allocation == NULL) {
-            free(old_array_heap_allocation);
+            DYNAMIC_ARRAY_FREE(old_array_heap_allocation);
             return NULL;
         }
 
@@ -94,7 +100,7 @@ void* dynamic_array_to_heap_allocated_array(Dynamic_Array array) {
     Dynamic_Array_Header* array_header = array_heap_allocation;
     const size_t array_size = array_header->length * array_header->item_size;
     memmove(array_heap_allocation, array, array_size);
-    return realloc(array_heap_allocation, array_size);
+    return DYNAMIC_ARRAY_REALLOC(array_heap_allocation, array_size);
 }
 
-#endif /* DYNAMIC_ARRAY_IMPLEMENTATION */
+#endif
