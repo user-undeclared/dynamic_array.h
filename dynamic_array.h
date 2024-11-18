@@ -1,6 +1,8 @@
 #ifndef DYNAMIC_ARRAY_H_
 #define DYNAMIC_ARRAY_H_
 
+/* TODO: figure out a shorter prefix than dynamic_array_ maybe? */
+
 #ifndef DYNAMIC_ARRAY_DEFAULT_INITIAL_CAPACITY
 #   define DYNAMIC_ARRAY_DEFAULT_INITIAL_CAPACITY 64
 #endif
@@ -63,8 +65,9 @@ void dynamic_array_destroy(Dynamic_Array array) {
     DYNAMIC_ARRAY_FREE(array_heap_allocation);
 }
 
+/* TODO: it would be nice to be able to indicate an error in a way that does not require the user to have a duplicate array variable */
 Dynamic_Array dynamic_array_push(Dynamic_Array array, const void* item) {
-    Dynamic_Array_Header* array_header = ((Dynamic_Array_Header*) array) - 1;
+    Dynamic_Array_Header* array_header;
 
     void* old_array_heap_allocation;
     void* new_array_heap_allocation;
@@ -73,14 +76,18 @@ Dynamic_Array dynamic_array_push(Dynamic_Array array, const void* item) {
     size_t item_slot_offset;
     void* item_slot;
 
+    if(array == NULL) {
+        return NULL;
+    }
+
+    array_header = ((Dynamic_Array_Header*) array) - 1;
     if(array_header->length + 1 > array_header->capacity) {
         array_header->capacity *= 2;
 
-        old_array_heap_allocation = ((Dynamic_Array_Header*) array) - 1;
+        old_array_heap_allocation = array_header;
         new_array_heap_allocation_size = sizeof(*array_header) + (array_header->capacity * array_header->item_size);
         new_array_heap_allocation = DYNAMIC_ARRAY_REALLOC(old_array_heap_allocation, new_array_heap_allocation_size);
         if(new_array_heap_allocation == NULL) {
-            DYNAMIC_ARRAY_FREE(old_array_heap_allocation);
             return NULL;
         }
 
